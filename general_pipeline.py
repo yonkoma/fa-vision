@@ -75,3 +75,11 @@ def rectanglify(img, stats, grayscale=False):
         cv2.rectangle(result, (xleft, ytop), (xright, ybot), color, 6)
 
     return result
+
+def resize(img, height):
+    """
+    Resize the image to fit the given height while keeping proportions.
+    Returns the factor by which the image was scaled in addition to the new image
+    """
+    size = (round(img.shape[1]*height/img.shape[0]), height)
+    return cv2.resize(img, size), height/img.shape[0]

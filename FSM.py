@@ -21,7 +21,7 @@ def __flood_fill_corners__(image, color):
 
 # Image Preprocessing
 print("Reading File...", end="")
-image = cv2.imread("IMG_2623.jpg")
+image = cv2.imread("images/paper1.jpg")
 filtered = cv2.bilateralFilter(cv2.cvtColor(image, cv2.COLOR_BGR2GRAY), 11, 17, 17)
 log = log_trans(filtered, 20)
 print("\rPreprocessing Image Data...", end="")
