@@ -2,9 +2,9 @@ import cv2
 import numpy as np
 import general_pipeline as gpipe
 
-def log_trans(img, fact):
-    if fact == 0:
-        return img
+def show(name, img):
+    cv2.namedWindow(name, cv2.WINDOW_NORMAL)
+    cv2.imshow(name, img)
 
 # Image Preprocessing
 print("Reading File...", end="")
@@ -41,9 +41,9 @@ for c in contours:
         cv2.drawContours(filtered, [box], 0, (255, 0, 0), 10)
 
 
-cv2.imshow("testc", filtered)
+show("testc", filtered)
 thresh = cv2.bitwise_not(thresh)
-cv2.imshow("test", thresh)
+show("test", thresh)
 cv2.waitKey(0)
 
 
