@@ -1,6 +1,15 @@
 import cv2
 import numpy as np
 
+def log_trans(img, fact):
+    if fact == 0:
+        return img
+    img = img / 255 * fact + 1
+    img = np.log(img)
+    img = 255 * img / np.log(1 + fact)
+    img = img.astype(np.uint8)
+    return img
+
 def __flood_fill_corners__(image, color):
     h, w = image.shape[:2]
     cv2.floodFill(image, None, (0, 0), color)
@@ -11,13 +20,11 @@ def __flood_fill_corners__(image, color):
 
 # Image Preprocessing
 print("Reading File...", end="")
-image = cv2.imread("IMG_2622.jpg")
-print("\rPreprocessing Image Data...", end="")
+image = cv2.imread("IMG_2623.jpg")
 filtered = cv2.bilateralFilter(cv2.cvtColor(image, cv2.COLOR_BGR2GRAY), 11, 17, 17)
-
-
-
-otsu_thresh, thresh = cv2.threshold(filtered, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+log = log_trans(filtered, 20)
+print("\rPreprocessing Image Data...", end="")
+otsu_thresh, thresh = cv2.threshold(log, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 otsu_thresh, real_thresh = cv2.threshold(filtered, otsu_thresh + 25, 255, cv2.THRESH_BINARY)
 
 
@@ -25,10 +32,11 @@ otsu_thresh, real_thresh = cv2.threshold(filtered, otsu_thresh + 25, 255, cv2.TH
 kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
 closing = cv2.morphologyEx(real_thresh, cv2.MORPH_OPEN, kernel, iterations=12)
 
-#__flood_fill_corners__(real_thresh, 0)
+__flood_fill_corners__(thresh, 0)
 
+thresh = cv2.bitwise_not(thresh)
 
-cv2.imshow("test", real_thresh)
+cv2.imshow("test", thresh)
 cv2.waitKey(0)
 
 
