@@ -1,9 +1,9 @@
 
 import numpy as np
 import cv2
-from math import log
+import math
 
-LOG_255 = log(255)
+LOG_255 = math.log(255)
 
 """
 Blurs a gray image.
@@ -17,10 +17,23 @@ Exponential transform of image.
 Maps 0 to 0 and 255 to 255
 """
 def exp (img):
-    normalizedImage = (img/255)
-    exponentsImage = normalizedImage * LOG_255
+    result = (img/255)
+    result = result * LOG_255
     result = np.clip(np.exp(exponentsImage),0,255).astype(np.uint8)
     return result
+
+"""
+Logarithmic transform of an image. 
+"""
+def log(img, fact):
+    img = img.copy()
+    if fact == 0:
+        return img.copy()
+    img = img * (fact / 255) + 1
+    img = np.log(img)
+    img = 255 * img / np.log(1 + fact)
+    img = img.astype(np.uint8)
+    return img
 
 """
 Thresholds a gray image.
@@ -47,8 +60,10 @@ def only_holes(img):
 Given a binary image, floodfills in a color
   from the top left corner.
 """
-def flood_fill_corner(img):
-    result = img.copy()
+def flood_fill_corner(img, color):
+    img = img.copy()
+    cv2.floodFill(img, None, (0, 0), color)
+    return img
 
 """
 Fills all holes of every blob
@@ -103,8 +118,23 @@ def rectanglify(img, stats, grayscale=False):
 
 """
 Resize the image to fit the given height while keeping proportions.
-Returns the factor by which the image was scaled in addition to the new image
+Returns the new image followed by the scaling factor used.
 """
 def resize(img, height):
     size = (round(img.shape[1]*height/img.shape[0]), height)
     return cv2.resize(img, size), height/img.shape[0]
+
+"""
+Extracts a rectangle from an image.
+Rotates the rectangle so it fits in the upright window.
+"""
+def get_rect(image, rect):
+    center, size, theta = rect
+    size = tuple(map(int, size))
+    theta *= 3.14159 / 180  # convert to rad
+    v_x = (math.cos(theta), math.sin(theta))
+    v_y = (-math.sin(theta), math.cos(theta))
+    s_x = center[0] - v_x[0] * ((size[0] - 1) / 2) - v_y[0] * ((size[1] - 1) / 2)
+    s_y = center[1] - v_x[1] * ((size[0] - 1) / 2) - v_y[1] * ((size[1] - 1) / 2)
+    mapping = np.array([[v_x[0], v_y[0], s_x], [v_x[1], v_y[1], s_y]])
+    return cv2.warpAffine(image, mapping, size, flags=cv2.WARP_INVERSE_MAP, borderMode=cv2.BORDER_REPLICATE)
