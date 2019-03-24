@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import general_pipeline as gpipe
 
 def log_trans(img, fact):
     if fact == 0:
@@ -35,6 +36,7 @@ closing = cv2.morphologyEx(real_thresh, cv2.MORPH_OPEN, kernel, iterations=12)
 __flood_fill_corners__(thresh, 0)
 
 thresh = cv2.bitwise_not(thresh)
+cv2.namedWindow("test", cv2.WINDOW_NORMAL)
 
 cv2.imshow("test", thresh)
 cv2.waitKey(0)
