@@ -29,7 +29,7 @@ show("thresh", thresh)
 
 floodfilled = gpipe.flood_fill_corner(thresh, 0)
 
-contours, hierarchy = cv2.findContours(floodfilled.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+ret1, contours, hierarchy = cv2.findContours(floodfilled.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
 for c in contours:
     if MIN_STATE_AREA < cv2.contourArea(c):
