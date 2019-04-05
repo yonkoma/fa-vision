@@ -24,3 +24,12 @@ def head_mask(hsv_img):
 # TODO: Function that takes an img and returns the centroids of the heads
 # TODO: Function that takes an array of base centroids, an array of head centroids,
 #   and the image, then returns an array of [base, head] pairs
+
+image = cv2.imread("images/tiny_arrowtest.png") # DEBUG
+hsv_img = cv2.cvtColor(image, cv2.COLOR_BGR2HSV) # DEBUG
+hues = hsv_img[:,:,0] # DEBUG
+print(hues) # DEBUG
+show("hues", hues) # DEBUG
+show("bases", base_mask(hsv_img)) # DEBUG
+show("heads", head_mask(hsv_img)) # DEBUG
+cv2.waitKey(0)
