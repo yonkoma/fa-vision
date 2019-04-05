@@ -14,8 +14,8 @@ red_pxl_range = (np.uint8([[[  0,  81, 255]]]), np.uint8([[[ 68,   0, 255]]]))
 def hue_from_pxl(pxl):
     return cv2.cvtColor(pxl, cv2.COLOR_BGR2HSV)[0,0,0]
 
-grn_hue_range = hue_from_pxl(grn_pxl_range[0], grn_pxl_range[1])
-red_hue_range = hue_from_pxl(red_pxl_range[0], red_pxl_range[1])
+grn_hue_range = (hue_from_pxl(grn_pxl_range[0]), hue_from_pxl(grn_pxl_range[1]))
+red_hue_range = (hue_from_pxl(red_pxl_range[0]), hue_from_pxl(red_pxl_range[1]))
 
 # Returns the distance between two hues
 #   which have a wraparound value.
@@ -63,3 +63,15 @@ def numpy_between_hues(hue_arr1, bottom_hue, top_hue, wraparound):
         + numpy_hue_dist(hue_arr1, top_hue, wraparound)
     )
     return dist_sum == inbetween_dist
+
+# Takes a hue_range and the hue channel of an image,
+#   returns a binary image mask of the colors that lie in the range.
+def hue_mask(hue_range, sat, hsv_img):
+    hue_arr = hsv_img[:,:,0]
+    sat_arr = hsv_img[:,:,1]
+
+    base_pixels_bool_arr = numpy_between_hues(hue_arr, hue_range[0], hue_range[1], 179)
+    result = base_pixels_bool_arr & (sat_arr > sat)
+    result = result.astype(np.uint8)
+    result *= 255
+    return result
