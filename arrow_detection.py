@@ -9,17 +9,19 @@ def show(name, img):
     cv2.namedWindow(name, cv2.WINDOW_NORMAL)
     cv2.imshow(name, img)
 
-# arrowbases = array of positions of arrow starts
-# arrowheads = array of positions of arrow_ends
+# arrowbases = list of positions of arrow starts
+arrowbases = []
+# arrowheads = list of positions of arrow_ends
+arrowheads = []
 
 arrowbase_hue_range = cu.grn_hue_range
 arrowhead_hue_range = cu.red_hue_range
 
 def base_mask(hsv_img):
-    return cu.hue_mask(arrowbase_hue_range, 50, hsv_img)
+    return cu.color_mask(arrowbase_hue_range, 50, hsv_img)
 
 def head_mask(hsv_img):
-    return cu.hue_mask(arrowhead_hue_range, 50, hsv_img)
+    return cu.color_mask(arrowhead_hue_range, 50, hsv_img)
 
 # TODO: Function that takes an img and returns the centroids of the heads
 # TODO: Function that takes an array of base centroids, an array of head centroids,
@@ -28,8 +30,7 @@ def head_mask(hsv_img):
 image = cv2.imread("images/tiny_arrowtest.png") # DEBUG
 hsv_img = cv2.cvtColor(image, cv2.COLOR_BGR2HSV) # DEBUG
 hues = hsv_img[:,:,0] # DEBUG
-print(hues) # DEBUG
 show("hues", hues) # DEBUG
 show("bases", base_mask(hsv_img)) # DEBUG
 show("heads", head_mask(hsv_img)) # DEBUG
-cv2.waitKey(0)
+cv2.waitKey(0) # DEBUG

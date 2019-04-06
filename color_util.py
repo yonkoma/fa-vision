@@ -66,7 +66,7 @@ def numpy_between_hues(hue_arr1, bottom_hue, top_hue, wraparound):
 
 # Takes a hue_range and the hue channel of an image,
 #   returns a binary image mask of the colors that lie in the range.
-def hue_mask(hue_range, sat, hsv_img):
+def color_mask(hue_range, sat, hsv_img):
     hue_arr = hsv_img[:,:,0]
     sat_arr = hsv_img[:,:,1]
 
