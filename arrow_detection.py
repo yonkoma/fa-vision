@@ -2,6 +2,7 @@
 import cv2
 import numpy as np
 import general_pipeline as gp
+import sys # DEBUG
 
 import color_util as cu
 
@@ -27,7 +28,8 @@ def head_mask(hsv_img):
 # TODO: Function that takes an array of base centroids, an array of head centroids,
 #   and the image, then returns an array of [base, head] pairs
 
-image = cv2.imread("images/tiny_arrowtest.png") # DEBUG
+image = cv2.imread(sys.argv[1]) # DEBUG
+show("img", image) # DEBUG
 hsv_img = cv2.cvtColor(image, cv2.COLOR_BGR2HSV) # DEBUG
 hues = hsv_img[:,:,0] # DEBUG
 show("hues", hues) # DEBUG
