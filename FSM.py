@@ -7,9 +7,31 @@ def show(name, img):
     cv2.namedWindow(name, cv2.WINDOW_NORMAL)
     cv2.imshow(name, img)
 
+def removeGlare(img, ksize, area_thresh):
+    sobel_x = cv2.Sobel(img, cv2.CV_8U, 1, 0, ksize=ksize)
+    sobel_y = cv2.Sobel(img, cv2.CV_8U, 0, 1, ksize=ksize)
+
+    _, thresh_x = cv2.threshold(sobel_x, 250, 255, cv2.THRESH_BINARY)
+    _, thresh_y = cv2.threshold(sobel_y, 250, 255, cv2.THRESH_BINARY)
+
+    otsu_thresh, thresh = cv2.threshold(cv2.bitwise_not(img), 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+
+    half_shift = 1
+    shift = half_shift*2
+    comp = cv2.bitwise_or(thresh_x[:-shift,shift:], thresh_y[shift:,:-shift])
+    comp = cv2.bitwise_or(comp, thresh[half_shift:-half_shift, half_shift:-half_shift])
+
+    count, markers, stats, centroids = cv2.connectedComponentsWithStats(comp, connectivity=4)
+    for i in range(1, count):
+        if stats[i][cv2.CC_STAT_AREA] < area_thresh:
+            comp[markers == i] = 0
+    
+    return comp
+
 # Image Preprocessing
 print("Reading File...", end="")
-image = cv2.imread("images/arrowtest.png")
+image = cv2.imread("images/board2.jpg")
+image, _ = gpipe.resize(image, 800)
 
 image_size = max(image.shape[0], image.shape[1])
 
