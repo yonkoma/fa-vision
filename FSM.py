@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import general_pipeline as gpipe
 import arrow_detection as adetect
+import sys
 
 def show(name, img):
     cv2.namedWindow(name, cv2.WINDOW_NORMAL)
@@ -30,7 +31,7 @@ def removeGlare(img, ksize, area_thresh):
 
 # Image Preprocessing
 print("Reading File...", end="")
-image = cv2.imread("images/board2.jpg")
+image = cv2.imread(sys.argv[1])
 image, _ = gpipe.resize(image, 800)
 
 image_size = max(image.shape[0], image.shape[1])
