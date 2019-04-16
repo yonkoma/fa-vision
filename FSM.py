@@ -42,16 +42,23 @@ print(MIN_STATE_AREA)
 gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
 filtered = cv2.bilateralFilter(gray, 11, 17, 17)
-log = gpipe.log(filtered, 20)
-
-show("log", log)
 
 print("\rPreprocessing Image Data...", end="")
-otsu_thresh, thresh = cv2.threshold(log, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+otsu_thresh, thresh = cv2.threshold(filtered, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+
+basemask = adetect.base_mask(image)
+headmask = adetect.head_mask(image)
+
+base_or_head_mask = cv2.bitwise_or(basemask, headmask)
+
+thresh = cv2.bitwise_and(cv2.bitwise_not(thresh), cv2.bitwise_not(base_or_head_mask))
+thresh = cv2.bitwise_not(thresh)
 
 show("thresh", thresh)
 
 floodfilled = gpipe.flood_fill_corner(thresh, 0)
+
+show("ffilled", floodfilled)
 
 # lazy version check
 lazyver = cv2.__version__[0]
@@ -81,8 +88,8 @@ cv2.waitKey(0)
 
 hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 arrow_mask = adetect.arrow_mask(hsv_image, cv2.bitwise_not(thresh), centers)
-show("base or arrow mask", cv2.bitwise_or(arrow_mask, adetect.base_mask(hsv_image)))
-show("head or arrow mask", cv2.bitwise_or(arrow_mask, adetect.head_mask(hsv_image)))
+show("base or arrow mask", cv2.bitwise_or(arrow_mask, adetect.base_mask(image)))
+show("head or arrow mask", cv2.bitwise_or(arrow_mask, adetect.head_mask(image)))
 show("image", image)
 show("testc", filtered)
 thresh = cv2.bitwise_not(thresh)
