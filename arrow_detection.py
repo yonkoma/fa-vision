@@ -20,11 +20,11 @@ arrowhead_hue_range = cu.red_hue_range
 
 # Returns a mask for the bases of the arrows
 def base_mask(hsv_img):
-    return cu.color_mask(arrowbase_hue_range, 50, hsv_img)
+    return cu.color_mask(arrowbase_hue_range, 80, hsv_img)
 
 # Returns a mask for the heads of the arrows
 def head_mask(hsv_img):
-    return cu.color_mask(arrowhead_hue_range, 50, hsv_img)
+    return cu.color_mask(arrowhead_hue_range, 80, hsv_img)
 
 # Takes an hsv image, its binary image, and a list of state centers,
 #   then returns a version of the image with only the arrows & their labels
