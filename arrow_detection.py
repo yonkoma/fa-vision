@@ -19,11 +19,15 @@ arrowbase_hue_range = cu.grn_hue_range
 arrowhead_hue_range = cu.red_hue_range
 
 # Returns a mask for the bases of the arrows
-def base_mask(hsv_img):
+def base_mask(img):
+    blurred = gp.blur(img, 11)
+    hsv_img = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
     return cu.color_mask(arrowbase_hue_range, 80, hsv_img)
 
 # Returns a mask for the heads of the arrows
-def head_mask(hsv_img):
+def head_mask(img):
+    blurred = gp.blur(img, 11)
+    hsv_img = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
     return cu.color_mask(arrowhead_hue_range, 80, hsv_img)
 
 # Takes an hsv image, its binary image, and a list of state centers,
