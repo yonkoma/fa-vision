@@ -10,9 +10,9 @@ def show(name, img):
     cv2.namedWindow(name, cv2.WINDOW_NORMAL)
     cv2.imshow(name, img)
 
-# arrowbases = list of positions of arrow starts
+# arrowbases = list of arrow_base centroids
 arrowbases = []
-# arrowheads = list of positions of arrow_ends
+# arrowheads = list of arrow_head centroids
 arrowheads = []
 
 arrowbase_hue_range = cu.grn_hue_range
@@ -22,13 +22,17 @@ arrowhead_hue_range = cu.red_hue_range
 def base_mask(img):
     blurred = gp.blur(img, 11)
     hsv_img = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
-    return cu.color_mask(arrowbase_hue_range, 80, hsv_img)
+    mask = cu.color_mask(arrowbase_hue_range, 80, hsv_img)
+    open_mask = gp.open(mask, 3)
+    return open_mask
 
 # Returns a mask for the heads of the arrows
 def head_mask(img):
     blurred = gp.blur(img, 11)
     hsv_img = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
-    return cu.color_mask(arrowhead_hue_range, 80, hsv_img)
+    mask = cu.color_mask(arrowhead_hue_range, 80, hsv_img)
+    open_mask = gp.open(mask, 3)
+    return open_mask
 
 # Takes an hsv image, its binary image, and a list of state centers,
 #   then returns a version of the image with only the arrows & their labels
@@ -45,7 +49,8 @@ def arrow_mask(hsv_img, bin_img, state_centers):
     for [x, y] in state_centers:
         cv2.floodFill(result, None, (int(x), int(y)), 0)
 
-    return result
+    open_result = gp.open(result, 3)
+    return open_result
 
 # TODO: Function that takes a base mask, a head mask, and a state mask,
 #   then returns a list an array of [base, head]
