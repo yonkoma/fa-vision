@@ -36,7 +36,9 @@ def head_mask(img):
 
 # Takes an hsv image, its binary image, and a list of state centers,
 #   then returns a version of the image with only the arrows & their labels
-def arrow_mask(hsv_img, bin_img, state_centers):
+def arrow_mask(img, bin_img, state_centers):
+    hsv_img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+
     base_and_head_mask = cv2.bitwise_and(base_mask(hsv_img), head_mask(hsv_img))
 
     # Remove bases and heads, disconnecting paths from states
@@ -51,6 +53,39 @@ def arrow_mask(hsv_img, bin_img, state_centers):
 
     open_result = gp.open(result, 3)
     return open_result
+
+def base_to_head_centroids(img, bin_img, state_centers):
+    bases = base_mask(img)
+    heads = head_mask(img)
+
+    hsv_img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+
+    arrows = arrow_mask(img, bin_img, state_centers)
+
+    base_centroids = cv2.connectedComponentsWithStats(bases)[3][1:]
+    base_centroids = [[int(x), int(y)] for [x, y] in base_centroids]
+
+    head_centroids = cv2.connectedComponentsWithStats(heads)[3][1:]
+    head_centroids = [[int(x), int(y)] for [x, y] in head_centroids]
+
+    base_head_arrow_mask = cv2.bitwise_or(bases, cv2.bitwise_or(heads, arrows))
+    base_head_arrow_mask = gp.dilate(base_head_arrow_mask, 5)
+
+    show("bham", base_head_arrow_mask)
+    cv2.waitKey(0)
+
+    result = []
+    for i, base_centroid in enumerate(base_centroids):
+        cv2.floodFill(base_head_arrow_mask, None, (base_centroid[0], base_centroid[1]), i + 1)
+
+    for head_centroid in head_centroids:
+        label = base_head_arrow_mask[head_centroid[1], head_centroid[0]]
+        base_centroid = base_centroids[label - 1]
+        result.append([base_centroid, head_centroid])
+
+    print(result)
+    return result
+
 
 # TODO: Function that takes a base mask, a head mask, and a state mask,
 #   then returns a list an array of [base, head]
