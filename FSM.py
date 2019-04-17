@@ -86,8 +86,9 @@ centers = [center for center, size, theta in rects]
 
 cv2.waitKey(0)
 
-hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-arrow_mask = adetect.arrow_mask(hsv_image, cv2.bitwise_not(thresh), centers)
+# hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+adetect.base_to_head_centroids(image, cv2.bitwise_not(thresh), centers)
+arrow_mask = adetect.arrow_mask(image, cv2.bitwise_not(thresh), centers)
 show("base or arrow mask", cv2.bitwise_or(arrow_mask, adetect.base_mask(image)))
 show("head or arrow mask", cv2.bitwise_or(arrow_mask, adetect.head_mask(image)))
 show("image", image)
