@@ -93,6 +93,15 @@ def open(img, size, iterations=1):
             iterations=iterations)
 
 """
+Morphological dilate operation.
+Uses a circular ellipse kernel.
+"""
+def dilate(img, size, iterations=1):
+    return cv2.dilate(img,
+        cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (size, size)),
+        iterations)
+
+"""
 Counts the amount of connected components in a binary image.
 Subtracts one due to the whole image being
   counted as a connected component.
