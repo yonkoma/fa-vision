@@ -22,7 +22,7 @@ arrowhead_hue_range = cu.red_hue_range
 def base_mask(img):
     blurred = gp.blur(img, 11)
     hsv_img = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
-    mask = cu.color_mask(arrowbase_hue_range, 80, hsv_img)
+    mask = cu.color_mask(arrowbase_hue_range, 40, hsv_img)
     open_mask = gp.open(mask, 3)
     return open_mask
 
@@ -71,8 +71,8 @@ def base_to_head_centroids(img, bin_img, state_centers):
     base_head_arrow_mask = cv2.bitwise_or(bases, cv2.bitwise_or(heads, arrows))
     base_head_arrow_mask = gp.dilate(base_head_arrow_mask, 5)
 
-    show("bham", base_head_arrow_mask)
-    cv2.waitKey(0)
+    # show("bham", base_head_arrow_mask)
+    # cv2.waitKey(0)
 
     result = []
     for i, base_centroid in enumerate(base_centroids):
@@ -83,7 +83,6 @@ def base_to_head_centroids(img, bin_img, state_centers):
         base_centroid = base_centroids[label - 1]
         result.append([base_centroid, head_centroid])
 
-    print(result)
     return result
 
 
