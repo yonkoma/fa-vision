@@ -92,8 +92,8 @@ def main(args):
 
     cv2.waitKey(0)
 
-    hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-    arrow_mask = adetect.arrow_mask(hsv_image, cv2.bitwise_not(thresh), centers)
+    adetect.base_to_head_centroids(image, cv2.bitwise_not(thresh), centers)
+    arrow_mask = adetect.arrow_mask(image, cv2.bitwise_not(thresh), centers)
     show("base or arrow mask", cv2.bitwise_or(arrow_mask, adetect.base_mask(image)))
     show("head or arrow mask", cv2.bitwise_or(arrow_mask, adetect.head_mask(image)))
     show("image", image)
@@ -107,33 +107,6 @@ parser.add_argument('image', metavar='IMAGE', type=str, help='the image of the D
 parser.add_argument('-g', '--glare', action='store_true', help='do anti-glare pre-processing.')
 args = parser.parse_args()
 main(args)
-rects = []
-# Extract each state from the image
-for c in contours:
-    # If the contour is the right size
-    if MIN_STATE_AREA < cv2.contourArea(c):
-        rect = cv2.minAreaRect(c)
-        rects.append(rect)
-        box = np.int0(cv2.boxPoints(rect))
-        subimage = gpipe.get_rect(image, rect)
-        show("thing", subimage)
-        cv2.waitKey(0)
-        cv2.drawContours(filtered, [box], 0, (255, 0, 0), 10)
-
-centers = [center for center, size, theta in rects]
-
-cv2.waitKey(0)
-
-# hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-adetect.base_to_head_centroids(image, cv2.bitwise_not(thresh), centers)
-arrow_mask = adetect.arrow_mask(image, cv2.bitwise_not(thresh), centers)
-show("base or arrow mask", cv2.bitwise_or(arrow_mask, adetect.base_mask(image)))
-show("head or arrow mask", cv2.bitwise_or(arrow_mask, adetect.head_mask(image)))
-show("image", image)
-show("testc", filtered)
-thresh = cv2.bitwise_not(thresh)
-show("test", thresh)
-cv2.waitKey(0)
 
 
 
