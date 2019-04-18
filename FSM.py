@@ -90,23 +90,23 @@ def main(args):
 
     centers = [center for center, size, theta in rects]
 
-    cv2.waitKey(0)
 
-    base_to_heads = adetect.base_to_head_centroids(image, cv2.bitwise_not(thresh), centers)
-
+    # arrow_mask = adetect.arrow_mask(image, cv2.bitwise_not(thresh), centers)
+    thresh = cv2.bitwise_not(thresh)
+    show("testc", filtered)
+    show("test", thresh)
     if args.debug:
+        show("base mask", adetect.base_mask(image))
+        show("head mask", adetect.head_mask(image))
+        show("arrow mask", adetect.arrow_mask(image, thresh, centers))
+        show("label mask", adetect.label_mask(image, thresh, centers))
+        base_to_heads = adetect.base_to_head_centroids(image, thresh, centers)
         for [[x1,y1], [x2,y2]] in base_to_heads:
             cv2.circle(image, (x1,y1), 10, (0, 255, 0), thickness=5)
             cv2.circle(image, (x2,y2), 10, (0, 0, 255), thickness=5)
             cv2.line(image, (x1, y1), (x2, y2), (255, 0, 0), thickness=5)
-
-    arrow_mask = adetect.arrow_mask(image, cv2.bitwise_not(thresh), centers)
-    show("base or arrow mask", cv2.bitwise_or(arrow_mask, adetect.base_mask(image)))
-    show("head or arrow mask", cv2.bitwise_or(arrow_mask, adetect.head_mask(image)))
     show("image", image)
-    show("testc", filtered)
-    thresh = cv2.bitwise_not(thresh)
-    show("test", thresh)
+
     cv2.waitKey(0)
 
 parser = argparse.ArgumentParser(description='Recognize DFAs.')
