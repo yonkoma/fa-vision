@@ -92,7 +92,14 @@ def main(args):
 
     cv2.waitKey(0)
 
-    adetect.base_to_head_centroids(image, cv2.bitwise_not(thresh), centers)
+    base_to_heads = adetect.base_to_head_centroids(image, cv2.bitwise_not(thresh), centers)
+
+    if args.debug:
+        for [[x1,y1], [x2,y2]] in base_to_heads:
+            cv2.circle(image, (x1,y1), 10, (0, 255, 0), thickness=5)
+            cv2.circle(image, (x2,y2), 10, (0, 0, 255), thickness=5)
+            cv2.line(image, (x1, y1), (x2, y2), (255, 0, 0), thickness=5)
+
     arrow_mask = adetect.arrow_mask(image, cv2.bitwise_not(thresh), centers)
     show("base or arrow mask", cv2.bitwise_or(arrow_mask, adetect.base_mask(image)))
     show("head or arrow mask", cv2.bitwise_or(arrow_mask, adetect.head_mask(image)))
@@ -105,6 +112,7 @@ def main(args):
 parser = argparse.ArgumentParser(description='Recognize DFAs.')
 parser.add_argument('image', metavar='IMAGE', type=str, help='the image of the DFA to process.')
 parser.add_argument('-g', '--glare', action='store_true', help='do anti-glare pre-processing.')
+parser.add_argument('-d', '--debug', action='store_true', help='show debug lines.')
 args = parser.parse_args()
 main(args)
 
