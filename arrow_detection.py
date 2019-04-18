@@ -34,15 +34,14 @@ def head_mask(img):
     open_mask = gp.open(mask, 3)
     return open_mask
 
-# Takes an hsv image, its binary image, and a list of state centers,
-#   then returns a version of the image with only the arrows & their labels
-def arrow_mask(img, bin_img, state_centers):
-    hsv_img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+def arrow_or_label_mask(img, bin_img, state_centers):
+    bases = base_mask(img)
+    heads = head_mask(img)
 
-    base_and_head_mask = cv2.bitwise_and(base_mask(hsv_img), head_mask(hsv_img))
+    base_or_head_mask = cv2.bitwise_or(bases, heads)
 
     # Remove bases and heads, disconnecting paths from states
-    result = cv2.bitwise_and(bin_img, cv2.bitwise_not(base_and_head_mask))
+    result = cv2.bitwise_and(bin_img, cv2.bitwise_not(base_or_head_mask))
 
     # Fill each state blob
     result = gp.fill_blobs(result)
@@ -51,8 +50,51 @@ def arrow_mask(img, bin_img, state_centers):
     for [x, y] in state_centers:
         cv2.floodFill(result, None, (int(x), int(y)), 0)
 
-    open_result = gp.open(result, 3)
-    return open_result
+    return result
+
+# Takes an hsv image, its binary image, and a list of state centers,
+#   then returns a version of the image with only the arrows & their labels
+def arrow_mask(img, bin_img, state_centers):
+    bases = base_mask(img)
+
+    base_centroids = cv2.connectedComponentsWithStats(bases)[3][1:]
+    base_centroids = [[int(x), int(y)] for [x, y] in base_centroids]
+
+    # Get the arrows and the labels
+    result = arrow_or_label_mask(img, bin_img, state_centers)
+
+    # Add bases (will be removed later)
+    result = cv2.bitwise_or(result, bases)
+
+    # Color the arrows in a specific hue
+    for [x, y] in base_centroids:
+        cv2.floodFill(result, None, (int(x), int(y)), 1)
+
+    # Remove bases
+    result = cv2.bitwise_and(result, cv2.bitwise_not(bases))
+
+    result[result != 1] = 0
+    result *= 255
+
+    return result
+
+def label_mask(img, bin_img, state_centers):
+    bases = base_mask(img)
+
+    base_centroids = cv2.connectedComponentsWithStats(bases)[3][1:]
+    base_centroids = [[int(x), int(y)] for [x, y] in base_centroids]
+
+    # Get the arrows and the labels
+    result = arrow_or_label_mask(img, bin_img, state_centers)
+
+    # Add bases (will be removed later)
+    result = cv2.bitwise_or(result, bases)
+
+    # Remove the arrows and bases
+    for [x, y] in base_centroids:
+        cv2.floodFill(result, None, (int(x), int(y)), 0)
+
+    return result
 
 def base_to_head_centroids(img, bin_img, state_centers):
     bases = base_mask(img)
