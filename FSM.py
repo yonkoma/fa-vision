@@ -10,26 +10,26 @@ def show(name, img):
     cv2.namedWindow(name, cv2.WINDOW_NORMAL)
     cv2.imshow(name, img)
 
-def removeGlare(img, ksize, area_thresh):
+def removeSmallComponents(img, area_size):
+    count, markers, stats, centroids = cv2.connectedComponentsWithStats(img, connectivity=4)
+    for i in range(1, count):
+        if stats[i][cv2.CC_STAT_AREA] < area_size:
+            img[markers == i] = 0
+            
+    return img
+
+def removeGlare(img, thresh, ksize, area_thresh):
     sobel_x = cv2.Sobel(img, cv2.CV_8U, 1, 0, ksize=ksize)
     sobel_y = cv2.Sobel(img, cv2.CV_8U, 0, 1, ksize=ksize)
     
-    _, thresh_x = cv2.threshold(sobel_x, 250, 255, cv2.THRESH_BINARY)
-    _, thresh_y = cv2.threshold(sobel_y, 250, 255, cv2.THRESH_BINARY)
-
-    log = gpipe.log(img, 20)
-    otsu_thresh, thresh = cv2.threshold(cv2.bitwise_not(log), 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    
+    _, thresh_x = cv2.threshold(sobel_x, 240, 255, cv2.THRESH_BINARY)
+    _, thresh_y = cv2.threshold(sobel_y, 240, 255, cv2.THRESH_BINARY)
+            
     shift = HALF_SHIFT*2
     comp = cv2.bitwise_or(thresh_x[:-shift,shift:], thresh_y[shift:,:-shift])
-
+    thresh = cv2.bitwise_not(thresh)
     comp = cv2.bitwise_or(comp, thresh[HALF_SHIFT:-HALF_SHIFT, HALF_SHIFT:-HALF_SHIFT])
-
-
-    count, markers, stats, centroids = cv2.connectedComponentsWithStats(comp, connectivity=4)
-    for i in range(1, count):
-        if stats[i][cv2.CC_STAT_AREA] < area_thresh:
-            comp[markers == i] = 0
+    comp = removeSmallComponents(comp, area_thresh)
     
     return comp
 
@@ -48,13 +48,12 @@ def main(args):
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
     filtered = cv2.bilateralFilter(gray, 11, 17, 17)
-    
+    otsu_thresh, thresh = cv2.threshold(filtered, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+
     if args.glare:
-        anti_glare = removeGlare(filtered, 5, 100)
+        anti_glare = removeGlare(filtered, thresh, 5, 200)
         thresh = cv2.bitwise_not(anti_glare)
     else:
-        otsu_thresh, thresh = cv2.threshold(filtered, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-
         basemask = adetect.base_mask(image)
         headmask = adetect.head_mask(image)
 
