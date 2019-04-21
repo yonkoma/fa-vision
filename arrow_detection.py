@@ -96,6 +96,9 @@ def label_mask(img, bin_img, state_centers):
 
     return result
 
+# Takes a color image, the thresholded binary version of the image,
+#   and and array of (integer) state centers.
+#  Returns an array of [arrow base position, arrow head position] pairs.
 def base_to_head_centroids(img, bin_img, state_centers):
     bases = base_mask(img)
     heads = head_mask(img)
@@ -110,35 +113,24 @@ def base_to_head_centroids(img, bin_img, state_centers):
     head_centroids = cv2.connectedComponentsWithStats(heads)[3][1:]
     head_centroids = [[int(x), int(y)] for [x, y] in head_centroids]
 
+    # A mask with the bases, the heads, and the arrows
     base_head_arrow_mask = cv2.bitwise_or(bases, cv2.bitwise_or(heads, arrows))
+
+    # Dilate to make sure bases and arrows touch
     base_head_arrow_mask = gp.dilate(base_head_arrow_mask, 5)
 
-    # show("bham", base_head_arrow_mask)
-    # cv2.waitKey(0)
-
+    # Result will contain an array of [base_coord, head_coord] pairs
     result = []
+
+    # Color the contiguous chunk with the index of the base centroid, plus 1
     for i, base_centroid in enumerate(base_centroids):
         cv2.floodFill(base_head_arrow_mask, None, (base_centroid[0], base_centroid[1]), i + 1)
 
+    # Check the color of the head centroid pixel;
+    #   it is the index of the base centroid it is connected to.
     for head_centroid in head_centroids:
         label = base_head_arrow_mask[head_centroid[1], head_centroid[0]]
         base_centroid = base_centroids[label - 1]
         result.append([base_centroid, head_centroid])
 
     return result
-
-
-# TODO: Function that takes a base mask, a head mask, and a state mask,
-#   then returns a list an array of [base, head]
-
-# TODO: Function that takes an array of base centroids, an array of head centroids,
-#   and the image, then returns an array of [base, head] pairs
-
-# image = cv2.imread(sys.argv[1]) # DEBUG
-# show("img", image) # DEBUG
-# hsv_img = cv2.cvtColor(image, cv2.COLOR_BGR2HSV) # DEBUG
-# hues = hsv_img[:,:,0] # DEBUG
-# show("hues", hues) # DEBUG
-# show("bases", base_mask(hsv_img)) # DEBUG
-# show("heads", head_mask(hsv_img)) # DEBUG
-# cv2.waitKey(0) # DEBUG
