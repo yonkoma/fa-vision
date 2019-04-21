@@ -10,14 +10,6 @@ def show(name, img):
     cv2.namedWindow(name, cv2.WINDOW_NORMAL)
     cv2.imshow(name, img)
 
-def removeSmallComponents(img, area_size):
-    count, markers, stats, centroids = cv2.connectedComponentsWithStats(img, connectivity=4)
-    for i in range(1, count):
-        if stats[i][cv2.CC_STAT_AREA] < area_size:
-            img[markers == i] = 0
-            
-    return img
-
 def removeGlare(img, thresh, ksize, area_thresh):
     sobel_x = cv2.Sobel(img, cv2.CV_8U, 1, 0, ksize=ksize)
     sobel_y = cv2.Sobel(img, cv2.CV_8U, 0, 1, ksize=ksize)
@@ -89,16 +81,20 @@ def main(args):
 
     centers = [center for center, size, theta in rects]
 
-
-    # arrow_mask = adetect.arrow_mask(image, cv2.bitwise_not(thresh), centers)
+    # Threshold needs to be flipped so that lines are white on black.
     thresh = cv2.bitwise_not(thresh)
+
     show("testc", filtered)
     show("test", thresh)
+
     if args.debug:
         show("base mask", adetect.base_mask(image))
         show("head mask", adetect.head_mask(image))
         show("arrow mask", adetect.arrow_mask(image, thresh, centers))
         show("label mask", adetect.label_mask(image, thresh, centers))
+
+        # Draw lines from each arrow base to each arrow head,
+        # and highlight each arrow base and each arrow head
         base_to_heads = adetect.base_to_head_centroids(image, thresh, centers)
         for [[x1,y1], [x2,y2]] in base_to_heads:
             cv2.circle(image, (x1,y1), 10, (0, 255, 0), thickness=5)

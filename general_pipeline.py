@@ -102,6 +102,17 @@ def dilate(img, size, iterations=1):
         iterations)
 
 """
+Removes components of a binary image that have below a certain area
+"""
+def removeSmallComponents(bin_img, area_size):
+    count, markers, stats, centroids = cv2.connectedComponentsWithStats(bin_img, connectivity=4)
+    for i in range(1, count):
+        if stats[i][cv2.CC_STAT_AREA] < area_size:
+            bin_img[markers == i] = 0
+
+    return bin_img
+
+"""
 Counts the amount of connected components in a binary image.
 Subtracts one due to the whole image being
   counted as a connected component.
