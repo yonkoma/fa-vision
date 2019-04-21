@@ -14,34 +14,47 @@ def main(args):
     # Image Preprocessing
     print("Reading Image... ", end="")
     image = cv2.imread(args.image)
+
+    # Resize image
     image, _ = gpipe.resize(image, 800)
 
     image_size = max(image.shape[0], image.shape[1])
 
+    # Get minimum state area
     MIN_STATE_AREA = int(((1/2) * image_size))
-    print("Size: " + str(MIN_STATE_AREA))
     print("Preprocessing Image Data...")
 
+    # Convert image to grayscale
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-    filtered = cv2.bilateralFilter(gray, 11, 17, 17)
-    otsu_thresh, thresh = cv2.threshold(filtered, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    # Reduce image noise, keep edges if we'll need them
+    blurred = gpipe.blur(gray, 5) if not args.glare else cv2.bilateralFilter(gray, 11, 17, 17)
+
+    # Be a little more demanding than otsu threshold
+    # Threshold needs to be inverse so that lines are white on black.
+    otsu_thresh, _ = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    _, thresh = cv2.threshold(blurred, otsu_thresh - 10, 255, cv2.THRESH_BINARY_INV)
 
     # If glare removal is enabled
     if args.glare:
         anti_glare = gpipe.removeGlare(blurred, thresh, 5, 200)
         thresh = cv2.bitwise_not(anti_glare)
     else:
-        basemask = adetect.base_mask(image)
-        headmask = adetect.head_mask(image)
+        bases = adetect.base_mask(image)
+        heads = adetect.head_mask(image)
 
-        base_or_head_mask = cv2.bitwise_or(basemask, headmask)
+        base_or_head_mask = cv2.bitwise_or(bases, heads)
 
-        thresh = cv2.bitwise_and(cv2.bitwise_not(thresh), cv2.bitwise_not(base_or_head_mask))
-        thresh = cv2.bitwise_not(thresh)
+        # Remove bases and heads from image to disconnect arrows from states
+        thresh = cv2.bitwise_and(thresh, cv2.bitwise_not(base_or_head_mask))
+
+        gpipe.removeSmallComponents(thresh, 10)
        
     show("thresh", thresh)
-    floodfilled = gpipe.flood_fill_corner(thresh, 0)
+
+    # Floodfill to obtain only the insides of  the state machines (without arrows)
+    floodfilled = gpipe.flood_fill_corner(thresh, 255)
+    floodfilled = cv2.bitwise_not(floodfilled)
 
     # lazy version check
     lazyver = cv2.__version__[0]
@@ -61,21 +74,22 @@ def main(args):
             rects.append(rect)
             box = np.int0(cv2.boxPoints(rect))
             subimage = gpipe.get_rect(image, rect)
+
+            # Show the state
             show("thing", subimage)
             cv2.waitKey(0)
-            cv2.drawContours(filtered, [box], 0, (255, 0, 0), 10)
+
+            # Draw the contour
+            cv2.drawContours(blurred, [box], 0, (255, 0, 0), 10)
 
     centers = [center for center, size, theta in rects]
 
-    # Threshold needs to be flipped so that lines are white on black.
-    thresh = cv2.bitwise_not(thresh)
-
-    show("testc", filtered)
+    show("testc", blurred)
     show("test", thresh)
 
     if args.debug:
-        show("base mask", adetect.base_mask(image))
-        show("head mask", adetect.head_mask(image))
+        show("base mask", bases)
+        show("head mask", heads)
         show("arrow mask", adetect.arrow_mask(image, thresh, centers))
         show("label mask", adetect.label_mask(image, thresh, centers))
 
