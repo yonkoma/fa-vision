@@ -158,3 +158,19 @@ def get_rect(image, rect):
     s_y = center[1] - v_x[1] * ((size[0] - 1) / 2) - v_y[1] * ((size[1] - 1) / 2)
     mapping = np.array([[v_x[0], v_y[0], s_x], [v_x[1], v_y[1], s_y]])
     return cv2.warpAffine(image, mapping, size, flags=cv2.WARP_INVERSE_MAP, borderMode=cv2.BORDER_REPLICATE)
+
+# TODO: Add comment... removes glare from image??? more likely than you think
+def removeGlare(img, thresh, ksize, area_thresh):
+    sobel_x = cv2.Sobel(img, cv2.CV_8U, 1, 0, ksize=ksize)
+    sobel_y = cv2.Sobel(img, cv2.CV_8U, 0, 1, ksize=ksize)
+
+    _, thresh_x = cv2.threshold(sobel_x, 240, 255, cv2.THRESH_BINARY)
+    _, thresh_y = cv2.threshold(sobel_y, 240, 255, cv2.THRESH_BINARY)
+
+    shift = HALF_SHIFT*2
+    comp = cv2.bitwise_or(thresh_x[:-shift,shift:], thresh_y[shift:,:-shift])
+    thresh = cv2.bitwise_not(thresh)
+    comp = cv2.bitwise_or(comp, thresh[HALF_SHIFT:-HALF_SHIFT, HALF_SHIFT:-HALF_SHIFT])
+    comp = removeSmallComponents(comp, area_thresh)
+
+    return comp

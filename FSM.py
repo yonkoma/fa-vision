@@ -10,21 +10,6 @@ def show(name, img):
     cv2.namedWindow(name, cv2.WINDOW_NORMAL)
     cv2.imshow(name, img)
 
-def removeGlare(img, thresh, ksize, area_thresh):
-    sobel_x = cv2.Sobel(img, cv2.CV_8U, 1, 0, ksize=ksize)
-    sobel_y = cv2.Sobel(img, cv2.CV_8U, 0, 1, ksize=ksize)
-    
-    _, thresh_x = cv2.threshold(sobel_x, 240, 255, cv2.THRESH_BINARY)
-    _, thresh_y = cv2.threshold(sobel_y, 240, 255, cv2.THRESH_BINARY)
-            
-    shift = HALF_SHIFT*2
-    comp = cv2.bitwise_or(thresh_x[:-shift,shift:], thresh_y[shift:,:-shift])
-    thresh = cv2.bitwise_not(thresh)
-    comp = cv2.bitwise_or(comp, thresh[HALF_SHIFT:-HALF_SHIFT, HALF_SHIFT:-HALF_SHIFT])
-    comp = removeSmallComponents(comp, area_thresh)
-    
-    return comp
-
 def main(args):
     # Image Preprocessing
     print("Reading Image... ", end="")
@@ -42,8 +27,9 @@ def main(args):
     filtered = cv2.bilateralFilter(gray, 11, 17, 17)
     otsu_thresh, thresh = cv2.threshold(filtered, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 
+    # If glare removal is enabled
     if args.glare:
-        anti_glare = removeGlare(filtered, thresh, 5, 200)
+        anti_glare = gpipe.removeGlare(blurred, thresh, 5, 200)
         thresh = cv2.bitwise_not(anti_glare)
     else:
         basemask = adetect.base_mask(image)

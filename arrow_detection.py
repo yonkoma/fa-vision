@@ -98,7 +98,7 @@ def label_mask(img, bin_img, state_centers):
 
 # Takes a color image, the thresholded binary version of the image,
 #   and and array of (integer) state centers.
-#  Returns an array of [arrow base position, arrow head position] pairs.
+# Returns an array of [arrow base position, arrow head position] pairs.
 def base_to_head_centroids(img, bin_img, state_centers):
     bases = base_mask(img)
     heads = head_mask(img)
