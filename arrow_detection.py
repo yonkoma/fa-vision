@@ -43,12 +43,15 @@ def arrow_or_label_mask(img, bin_img, state_centers):
     # Remove bases and heads, disconnecting paths from states
     result = cv2.bitwise_and(bin_img, cv2.bitwise_not(base_or_head_mask))
 
-    # Fill each state blob
-    result = gp.fill_blobs(result)
+    # Fill each blob (to fill each state blob)
+    blob_filled = gp.fill_blobs(result)
 
     # Remove each state blob
     for [x, y] in state_centers:
-        cv2.floodFill(result, None, (int(x), int(y)), 0)
+        cv2.floodFill(blob_filled, None, (int(x), int(y)), 0)
+
+    # Unfill the insides of letters
+    result = cv2.bitwise_and(result, blob_filled)
 
     return result
 
