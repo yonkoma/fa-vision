@@ -22,7 +22,7 @@ arrowhead_hue_range = cu.red_hue_range
 def base_mask(img):
     blurred = gp.blur(img, 11)
     hsv_img = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
-    mask = cu.color_mask(arrowbase_hue_range, 40, hsv_img)
+    mask = cu.color_mask(arrowbase_hue_range, 60, hsv_img)
     open_mask = gp.open(mask, 3)
     return open_mask
 
