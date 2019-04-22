@@ -95,11 +95,20 @@ def main(args):
 
         # Draw lines from each arrow base to each arrow head,
         # and highlight each arrow base and each arrow head
-        base_to_heads = adetect.base_to_head_centroids(image, thresh, centers)
-        for [[x1,y1], [x2,y2]] in base_to_heads:
+        centroid_base_to_heads = adetect.base_to_arrow_to_head_centroids(image, thresh, centers)
+        for i, [[x1,y1], [xc, yc], [x2,y2]] in enumerate(centroid_base_to_heads):
+            xc = int(xc)
+            yc = int(yc)
             cv2.circle(image, (x1,y1), 10, (0, 255, 0), thickness=5)
             cv2.circle(image, (x2,y2), 10, (0, 0, 255), thickness=5)
-            cv2.line(image, (x1, y1), (x2, y2), (255, 0, 0), thickness=5)
+            cv2.line(image, (x1, y1), (xc, yc), (255, 0, 0), thickness=5)
+            print("i", i)
+            print("thing", [[xc, yc], [[x1,y1], [x2,y2]]])
+            show("image", image)
+            cv2.waitKey(00)
+            cv2.line(image, (xc, yc), (x2, y2), (255, 0, 0), thickness=5)
+            show("image", image)
+            cv2.waitKey(00)
     show("image", image)
 
     cv2.waitKey(0)

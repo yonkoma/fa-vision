@@ -132,3 +132,61 @@ def base_to_head_centroids(img, bin_img, state_centers):
         result.append([base_centroid, head_centroid])
 
     return result
+
+# Takes a color image, the thresholded binary version of the image,
+#   and and array of (integer) state centers.
+# Returns a list of items. Each item has the following form:
+#   [arrow_base_centroid, arrow_centroid, arrow_head_centroid].
+def base_to_arrow_to_head_centroids(img, bin_img, state_centers):
+    bases = base_mask(img)
+    heads = head_mask(img)
+
+    hsv_img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+
+    arrows = arrow_mask(img, bin_img, state_centers)
+    labels = label_mask(img, bin_img, state_centers)
+
+    base_centroids = gp.int_centroids(bases)
+    head_centroids = gp.int_centroids(heads)
+    arrow_centroids = gp.centroids(arrows)
+
+    # A mask with the bases, the heads, and the arrows
+    base_head_arrow_mask = cv2.bitwise_or(bases, cv2.bitwise_or(heads, arrows))
+
+    # Dilate to make sure bases and arrows touch
+    index_mask = gp.dilate(base_head_arrow_mask, 5)
+
+    # Result will contain an array of [base_coord, head_coord] pairs
+    base_coord_to_head_coords = [ None ] * len(base_centroids)
+
+    # Color the contiguous chunk with the index of the base centroid, plus 1
+    for i, base_centroid in enumerate(base_centroids):
+        cv2.floodFill(index_mask, None, (base_centroid[0], base_centroid[1]), i + 1)
+
+    # Check the color of the head centroid pixel;
+    #   it is the index of the base centroid it is connected to.
+    for head_centroid in head_centroids:
+        label = index_mask[head_centroid[1], head_centroid[0]]
+        base_centroid = base_centroids[label - 1]
+        base_coord_to_head_coords[label - 1] = [base_centroid, head_centroid]
+
+    count, labels, stats, centroids = cv2.connectedComponentsWithStats(arrows)
+
+    result = []
+    # stat = [xleft, ytop, width, height, area]
+    for i, ([xleft, ytop, width, height, area], centroid) in enumerate(zip(stats[1:], centroids[1:])):
+        body_coord = (None, None)
+
+        window = labels[ytop][xleft:xleft+width]
+        # Find a pixel that belongs to the arrow body
+        for index, item in enumerate(window):
+            if item == (i+1):
+                body_coord = [ytop, index + xleft]
+                break
+
+        # Get which label the pixel has to when colored with the indices
+        label = index_mask[body_coord[0], body_coord[1]]
+        base_coord, head_coord = base_coord_to_head_coords[label - 1]
+        result.append([base_coord, centroid, head_coord])
+
+    return result
