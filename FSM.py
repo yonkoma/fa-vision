@@ -75,23 +75,27 @@ def main(args):
             box = np.int0(cv2.boxPoints(rect))
             subimage = gpipe.get_rect(image, rect)
 
-            # Show the state
-            show("thing", subimage)
-            cv2.waitKey(0)
+            if args.debug:
+                # Show the state
+                show("thing", subimage)
+                cv2.waitKey(0)
 
             # Draw the contour
             cv2.drawContours(blurred, [box], 0, (255, 0, 0), 10)
 
     centers = [center for center, size, theta in rects]
 
-    show("testc", blurred)
-    show("test", thresh)
 
     if args.debug:
+        show("testc", blurred)
+        show("test", thresh)
         show("base mask", bases)
         show("head mask", heads)
         show("arrow mask", adetect.arrow_mask(image, thresh, centers))
         show("label mask", adetect.label_mask(image, thresh, centers))
+
+        labeldims_bases_heads = adetect.label_dim_base_to_head_centroids(image, thresh, centers)
+        labeldims = [labeldim for labeldim, base, head in labeldims_bases_heads]
 
         # Draw lines from each arrow base to each arrow head,
         # and highlight each arrow base and each arrow head
@@ -102,13 +106,17 @@ def main(args):
             cv2.circle(image, (x1,y1), 10, (0, 255, 0), thickness=5)
             cv2.circle(image, (x2,y2), 10, (0, 0, 255), thickness=5)
             cv2.line(image, (x1, y1), (xc, yc), (255, 0, 0), thickness=5)
-            print("i", i)
-            print("thing", [[xc, yc], [[x1,y1], [x2,y2]]])
+
+            cv2.rectangle(image,
+                (labeldims[i][1][0], labeldims[i][0][0]),
+                (labeldims[i][1][1], labeldims[i][0][1]),
+                (255,0,0), 2)
+
             show("image", image)
-            cv2.waitKey(00)
+            cv2.waitKey(0)
             cv2.line(image, (xc, yc), (x2, y2), (255, 0, 0), thickness=5)
             show("image", image)
-            cv2.waitKey(00)
+            cv2.waitKey(0)
     show("image", image)
 
     cv2.waitKey(0)

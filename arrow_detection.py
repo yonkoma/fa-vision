@@ -2,6 +2,7 @@
 import cv2
 import numpy as np
 import general_pipeline as gp
+import math
 # import sys # DEBUG
 
 import color_util as cu
@@ -111,6 +112,10 @@ def base_to_head_centroids(img, bin_img, state_centers):
     base_centroids = gp.int_centroids(bases)
     head_centroids = gp.int_centroids(heads)
 
+    if len(base_centroids) != len(head_centroids):
+        raise ValueError(f"bad iamge for base_to_head_centroids."
+            f"There are {len(base_centroids)} bases and {len(head_centroids)} heads, but there should be the same of each.")
+
     # A mask with the bases, the heads, and the arrows
     base_head_arrow_mask = cv2.bitwise_or(bases, cv2.bitwise_or(heads, arrows))
 
@@ -135,7 +140,7 @@ def base_to_head_centroids(img, bin_img, state_centers):
 
 # Takes a color image, the thresholded binary version of the image,
 #   and and array of (integer) state centers.
-# Returns a list of items. Each item has the following form:
+# Returns a list. Each item in the list has the following form:
 #   [arrow_base_centroid, arrow_centroid, arrow_head_centroid].
 def base_to_arrow_to_head_centroids(img, bin_img, state_centers):
     bases = base_mask(img)
@@ -149,6 +154,10 @@ def base_to_arrow_to_head_centroids(img, bin_img, state_centers):
     base_centroids = gp.int_centroids(bases)
     head_centroids = gp.int_centroids(heads)
     arrow_centroids = gp.centroids(arrows)
+
+    if len(base_centroids) != len(head_centroids) or len(base_centroids) != len(arrow_centroids):
+        raise ValueError(f"bad image for base_to_arrow_to_head_centroids."
+            f"There are {len(base_centroids)} bases, {len(head_centroids)} heads, and {len(label_centroids)} labels, but there should be the same of each.")
 
     # A mask with the bases, the heads, and the arrows
     base_head_arrow_mask = cv2.bitwise_or(bases, cv2.bitwise_or(heads, arrows))
@@ -170,11 +179,13 @@ def base_to_arrow_to_head_centroids(img, bin_img, state_centers):
         base_centroid = base_centroids[label - 1]
         base_coord_to_head_coords[label - 1] = [base_centroid, head_centroid]
 
+    # Each stat has the form [xleft, ytop, width, height, area]
     count, labels, stats, centroids = cv2.connectedComponentsWithStats(arrows)
 
     result = []
-    # stat = [xleft, ytop, width, height, area]
-    for i, ([xleft, ytop, width, height, area], centroid) in enumerate(zip(stats[1:], centroids[1:])):
+    stats_and_centroids = zip(stats[1:], centroids[1:])
+
+    for i, ([xleft, ytop, width, height, area], centroid) in enumerate(stats_and_centroids):
         body_coord = (None, None)
 
         window = labels[ytop][xleft:xleft+width]
@@ -190,3 +201,56 @@ def base_to_arrow_to_head_centroids(img, bin_img, state_centers):
         result.append([base_coord, centroid, head_coord])
 
     return result
+
+# Takes a color image, the thresholded binary version of the image,
+#   and and array of (integer) state centers.
+# Returns a list. Each item in the list has the following form:
+#   [slice of the image that contains the arrow label,
+#    base_centroid, head_centroid].
+def label_dim_base_to_head_centroids(img, bin_img, state_centers):
+    bases_arrows_heads = base_to_arrow_to_head_centroids(img, bin_img, state_centers)
+
+    bases = [base for base, arrow, head in bases_arrows_heads]
+    arrows = [arrow for base, arrow, head in bases_arrows_heads]
+    heads = [arrow for base, arrow, head in bases_arrows_heads]
+
+    labels = label_mask(img, bin_img, state_centers)
+    _, _, label_stats, label_centroids = cv2.connectedComponentsWithStats(labels)
+    label_stats = label_stats[1:]
+    label_centroids = label_centroids[1:]
+
+    if len(bases_arrows_heads) != len(label_centroids):
+        raise ValueError(f"bad image for label_dim_base_to_head_centroids."
+            f"There are {len(bases_arrows_heads)} arrows and {len(label_centroids)} labels, but there should be the same of each.")
+
+    results = [ None ] * len(bases)
+
+    # Find closest arrow center.
+    # This is O(n^2) but our maximum n is small,
+    #   so it's fine
+    for i, label_centroid in enumerate(label_centroids):
+        min_sqr_dist = math.inf
+        for j, arrow in enumerate(arrows):
+            if centroid_sqr_dist(label_centroid, arrow) < min_sqr_dist:
+                min_j = j
+                min_sqr_dist = centroid_sqr_dist(label_centroid, arrow)
+
+        [xleft, ytop, width, height, area] = label_stats[i]
+
+        if results[min_j] != None:
+            raise ValueError(f"bad image for label_dim_base_to_head_centroids."
+                f"Multiple labels are closest to one arrow.")
+
+        results[min_j] = [
+            [ [ytop, ytop+height], [xleft, xleft+width] ],
+            bases[min_j],
+            heads[min_j]
+        ]
+
+    return results
+
+"""
+Get the squared distance between two centroids
+"""
+def centroid_sqr_dist(centroid1, centroid2):
+    return (centroid1[0] - centroid2[0])**2 + (centroid1[1] - centroid2[1])**2
