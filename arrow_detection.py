@@ -57,8 +57,7 @@ def arrow_or_label_mask(img, bin_img, state_centers):
 def arrow_mask(img, bin_img, state_centers):
     bases = base_mask(img)
 
-    base_centroids = cv2.connectedComponentsWithStats(bases)[3][1:]
-    base_centroids = [[int(x), int(y)] for [x, y] in base_centroids]
+    base_centroids = gp.int_centroids(bases)
 
     # Get the arrows and the labels
     result = arrow_or_label_mask(img, bin_img, state_centers)
@@ -81,8 +80,7 @@ def arrow_mask(img, bin_img, state_centers):
 def label_mask(img, bin_img, state_centers):
     bases = base_mask(img)
 
-    base_centroids = cv2.connectedComponentsWithStats(bases)[3][1:]
-    base_centroids = [[int(x), int(y)] for [x, y] in base_centroids]
+    base_centroids = gp.int_centroids(bases)
 
     # Get the arrows and the labels
     result = arrow_or_label_mask(img, bin_img, state_centers)
@@ -107,11 +105,8 @@ def base_to_head_centroids(img, bin_img, state_centers):
 
     arrows = arrow_mask(img, bin_img, state_centers)
 
-    base_centroids = cv2.connectedComponentsWithStats(bases)[3][1:]
-    base_centroids = [[int(x), int(y)] for [x, y] in base_centroids]
-
-    head_centroids = cv2.connectedComponentsWithStats(heads)[3][1:]
-    head_centroids = [[int(x), int(y)] for [x, y] in head_centroids]
+    base_centroids = gp.int_centroids(bases)
+    head_centroids = gp.int_centroids(heads)
 
     # A mask with the bases, the heads, and the arrows
     base_head_arrow_mask = cv2.bitwise_or(bases, cv2.bitwise_or(heads, arrows))

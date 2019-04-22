@@ -75,6 +75,18 @@ def fill_blobs(img):
     return cv2.bitwise_or(only_holes(img), img)
 
 """
+Gets each centroid of each blob in an image
+"""
+def centroids(img):
+    return cv2.connectedComponentsWithStats(img)[3][1:]
+
+"""
+Gets each centroid of each blob in an image, floored to an int
+"""
+def int_centroids(img):
+    return [[int(x), int(y)] for [x, y] in centroids(img)]
+
+"""
 Morphological close operation.
 Uses a circular ellipse kernel.
 """
