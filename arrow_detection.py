@@ -22,7 +22,7 @@ arrowhead_hue_range = cu.red_hue_range
 def base_mask(img):
     blurred = gp.blur(img, 11)
     hsv_img = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
-    mask = cu.color_mask(arrowbase_hue_range, 40, hsv_img)
+    mask = cu.color_mask(arrowbase_hue_range, 60, hsv_img)
     open_mask = gp.open(mask, 3)
     return open_mask
 
@@ -43,12 +43,15 @@ def arrow_or_label_mask(img, bin_img, state_centers):
     # Remove bases and heads, disconnecting paths from states
     result = cv2.bitwise_and(bin_img, cv2.bitwise_not(base_or_head_mask))
 
-    # Fill each state blob
-    result = gp.fill_blobs(result)
+    # Fill each blob (to fill each state blob)
+    blob_filled = gp.fill_blobs(result)
 
     # Remove each state blob
     for [x, y] in state_centers:
-        cv2.floodFill(result, None, (int(x), int(y)), 0)
+        cv2.floodFill(blob_filled, None, (int(x), int(y)), 0)
+
+    # Unfill the insides of letters
+    result = cv2.bitwise_and(result, blob_filled)
 
     return result
 
@@ -57,8 +60,7 @@ def arrow_or_label_mask(img, bin_img, state_centers):
 def arrow_mask(img, bin_img, state_centers):
     bases = base_mask(img)
 
-    base_centroids = cv2.connectedComponentsWithStats(bases)[3][1:]
-    base_centroids = [[int(x), int(y)] for [x, y] in base_centroids]
+    base_centroids = gp.int_centroids(bases)
 
     # Get the arrows and the labels
     result = arrow_or_label_mask(img, bin_img, state_centers)
@@ -81,8 +83,7 @@ def arrow_mask(img, bin_img, state_centers):
 def label_mask(img, bin_img, state_centers):
     bases = base_mask(img)
 
-    base_centroids = cv2.connectedComponentsWithStats(bases)[3][1:]
-    base_centroids = [[int(x), int(y)] for [x, y] in base_centroids]
+    base_centroids = gp.int_centroids(bases)
 
     # Get the arrows and the labels
     result = arrow_or_label_mask(img, bin_img, state_centers)
@@ -107,11 +108,8 @@ def base_to_head_centroids(img, bin_img, state_centers):
 
     arrows = arrow_mask(img, bin_img, state_centers)
 
-    base_centroids = cv2.connectedComponentsWithStats(bases)[3][1:]
-    base_centroids = [[int(x), int(y)] for [x, y] in base_centroids]
-
-    head_centroids = cv2.connectedComponentsWithStats(heads)[3][1:]
-    head_centroids = [[int(x), int(y)] for [x, y] in head_centroids]
+    base_centroids = gp.int_centroids(bases)
+    head_centroids = gp.int_centroids(heads)
 
     # A mask with the bases, the heads, and the arrows
     base_head_arrow_mask = cv2.bitwise_or(bases, cv2.bitwise_or(heads, arrows))
@@ -132,5 +130,63 @@ def base_to_head_centroids(img, bin_img, state_centers):
         label = base_head_arrow_mask[head_centroid[1], head_centroid[0]]
         base_centroid = base_centroids[label - 1]
         result.append([base_centroid, head_centroid])
+
+    return result
+
+# Takes a color image, the thresholded binary version of the image,
+#   and and array of (integer) state centers.
+# Returns a list of items. Each item has the following form:
+#   [arrow_base_centroid, arrow_centroid, arrow_head_centroid].
+def base_to_arrow_to_head_centroids(img, bin_img, state_centers):
+    bases = base_mask(img)
+    heads = head_mask(img)
+
+    hsv_img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+
+    arrows = arrow_mask(img, bin_img, state_centers)
+    labels = label_mask(img, bin_img, state_centers)
+
+    base_centroids = gp.int_centroids(bases)
+    head_centroids = gp.int_centroids(heads)
+    arrow_centroids = gp.centroids(arrows)
+
+    # A mask with the bases, the heads, and the arrows
+    base_head_arrow_mask = cv2.bitwise_or(bases, cv2.bitwise_or(heads, arrows))
+
+    # Dilate to make sure bases and arrows touch
+    index_mask = gp.dilate(base_head_arrow_mask, 5)
+
+    # Result will contain an array of [base_coord, head_coord] pairs
+    base_coord_to_head_coords = [ None ] * len(base_centroids)
+
+    # Color the contiguous chunk with the index of the base centroid, plus 1
+    for i, base_centroid in enumerate(base_centroids):
+        cv2.floodFill(index_mask, None, (base_centroid[0], base_centroid[1]), i + 1)
+
+    # Check the color of the head centroid pixel;
+    #   it is the index of the base centroid it is connected to.
+    for head_centroid in head_centroids:
+        label = index_mask[head_centroid[1], head_centroid[0]]
+        base_centroid = base_centroids[label - 1]
+        base_coord_to_head_coords[label - 1] = [base_centroid, head_centroid]
+
+    count, labels, stats, centroids = cv2.connectedComponentsWithStats(arrows)
+
+    result = []
+    # stat = [xleft, ytop, width, height, area]
+    for i, ([xleft, ytop, width, height, area], centroid) in enumerate(zip(stats[1:], centroids[1:])):
+        body_coord = (None, None)
+
+        window = labels[ytop][xleft:xleft+width]
+        # Find a pixel that belongs to the arrow body
+        for index, item in enumerate(window):
+            if item == (i+1):
+                body_coord = [ytop, index + xleft]
+                break
+
+        # Get which label the pixel has to when colored with the indices
+        label = index_mask[body_coord[0], body_coord[1]]
+        base_coord, head_coord = base_coord_to_head_coords[label - 1]
+        result.append([base_coord, centroid, head_coord])
 
     return result
