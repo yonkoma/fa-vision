@@ -4,8 +4,6 @@ import general_pipeline as gpipe
 import arrow_detection as adetect
 import argparse
 
-HALF_SHIFT = 1
-
 def show(name, img):
     cv2.namedWindow(name, cv2.WINDOW_NORMAL)
     cv2.imshow(name, img)
@@ -31,26 +29,27 @@ def main(args):
     blurred = gpipe.blur(gray, 5) if not args.glare else cv2.bilateralFilter(gray, 11, 17, 17)
 
     # Be a little more demanding than otsu threshold
+    thresh = gpipe.adjustedOtsu(blurred, -10)
     # Threshold needs to be inverse so that lines are white on black.
-    otsu_thresh, _ = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    _, thresh = cv2.threshold(blurred, otsu_thresh - 10, 255, cv2.THRESH_BINARY_INV)
-
+    thresh = cv2.bitwise_not(thresh)
+    
     # If glare removal is enabled
     if args.glare:
-        anti_glare = gpipe.removeGlare(blurred, thresh, 5, 200)
-        thresh = cv2.bitwise_not(anti_glare)
-    else:
-        bases = adetect.base_mask(image)
-        heads = adetect.head_mask(image)
+        thresh = gpipe.removeGlare(blurred, thresh, 5, 200)
 
-        base_or_head_mask = cv2.bitwise_or(bases, heads)
-
-        # Remove bases and heads from image to disconnect arrows from states
-        thresh = cv2.bitwise_and(thresh, cv2.bitwise_not(base_or_head_mask))
-
-        gpipe.removeSmallComponents(thresh, 10)
-       
     show("thresh", thresh)
+
+    bases = adetect.base_mask(image)
+    heads = adetect.head_mask(image)
+
+    base_or_head_mask = cv2.bitwise_or(bases, heads)
+
+    # Remove bases and heads from image to disconnect arrows from states
+    thresh = cv2.bitwise_and(thresh, cv2.bitwise_not(base_or_head_mask))
+
+    gpipe.removeSmallComponents(thresh, 10)
+       
+#    show("thresh", thresh)
 
     # Floodfill to obtain only the insides of  the state machines (without arrows)
     floodfilled = gpipe.flood_fill_corner(thresh, 255)
@@ -85,6 +84,8 @@ def main(args):
 
     centers = [center for center, size, theta in rects]
 
+    show("testc", blurred)
+    show("test", thresh)
 
     if args.debug:
         show("testc", blurred)
