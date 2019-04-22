@@ -212,7 +212,7 @@ def label_dim_base_to_head_centroids(img, bin_img, state_centers):
 
     bases = [base for base, arrow, head in bases_arrows_heads]
     arrows = [arrow for base, arrow, head in bases_arrows_heads]
-    heads = [arrow for base, arrow, head in bases_arrows_heads]
+    heads = [head for base, arrow, head in bases_arrows_heads]
 
     labels = label_mask(img, bin_img, state_centers)
     _, _, label_stats, label_centroids = cv2.connectedComponentsWithStats(labels)
@@ -247,6 +247,48 @@ def label_dim_base_to_head_centroids(img, bin_img, state_centers):
             heads[min_j]
         ]
 
+    return results
+
+# TODO: Once we have a representation of states, this should use states instead of state centers.
+def state_label_state(img, bin_img, state_centers):
+
+    labeldims_bases_heads = label_dim_base_to_head_centroids(img, bin_img, state_centers)
+
+    labeldims = [labeldim for labeldim, base, head in labeldims_bases_heads]
+    bases = [base for labeldim, base, head in labeldims_bases_heads]
+    heads = [head for labeldim, base, head in labeldims_bases_heads]
+    print(bases)
+    print(heads)
+
+    newbases = []
+    # Find closest state center.
+    # This is O(n^2) but our maximum n is small,
+    #   so it's fine
+    for i, base in enumerate(bases):
+        min_sqr_dist = math.inf
+        for j, state_center in enumerate(state_centers):
+            if centroid_sqr_dist(base, state_center) < min_sqr_dist:
+                min_j = j
+                min_sqr_dist = centroid_sqr_dist(base, state_center)
+        print("min_j", min_j)
+        newbase = state_centers[min_j]
+        newbases.append(newbase)
+        print("newbase", newbase)
+
+    newheads = []
+    for i, head in enumerate(heads):
+        min_sqr_dist = math.inf
+        for j, state_center in enumerate(state_centers):
+            if centroid_sqr_dist(head, state_center) < min_sqr_dist:
+                min_j = j
+                min_sqr_dist = centroid_sqr_dist(head, state_center)
+        print("min_j", min_j)
+        newhead = state_centers[min_j]
+        newheads.append(newhead)
+        print("newhead", newhead)
+
+    results = list(zip(newbases, newheads))
+    print(results)
     return results
 
 """
