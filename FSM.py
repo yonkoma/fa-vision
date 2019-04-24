@@ -4,18 +4,11 @@ import math
 import general_pipeline as gpipe
 import arrow_detection as adetect
 import argparse
-import label_detection as ldetect
-from keras.models import load_model
 from graphviz import Digraph
 
 def show(name, img):
     cv2.namedWindow(name, cv2.WINDOW_NORMAL)
     cv2.imshow(name, img)
-
-def label_from_rect(image, model):
-    sized_img = cv2.resize(image, (28, 28))
-    label = ldetect.predict(sized_img, model)
-    return label
 
 def main(args):
     # Image Preprocessing
@@ -146,20 +139,14 @@ def main(args):
             show("image", css_image)
             cv2.waitKey(0)
 
-    model = load_model("teammodelFINAL.h5")
-
     states = {}
     for i in range(len(centers)):
-        label = label_from_rect(state_images[i], model)
-        states[centers[i]] = label
+        states[centers[i]] = str(i)
         
     graph = Digraph()
     for i in range(len(centroid_state_to_state)):
         edge = centroid_state_to_state[i]
-        rect = labeldims[i]
-        label_img = thresh[rect[0][0]:rect[0][1], rect[1][0]:rect[1][1]]
-        label = label_from_rect(label_img, model)
-        graph.edge(states[edge[0]], states[edge[1]], label=label)
+        graph.edge(states[edge[0]], states[edge[1]])
         
     graph.render('./out', cleanup=True)
 #    show("image", image)
