@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import math
 import general_pipeline as gpipe
 import arrow_detection as adetect
 import argparse
@@ -11,10 +12,9 @@ def show(name, img):
     cv2.namedWindow(name, cv2.WINDOW_NORMAL)
     cv2.imshow(name, img)
 
-def label_from_rect(image, rect, model):
-    label_img = image[rect[0][0]:rect[0][1], rect[1][0]:rect[1][1]]
-    sized_label_img = cv2.resize(label_img, (28, 28))
-    label = ldetect.predict(sized_label_img, model)
+def label_from_rect(image, model):
+    sized_img = cv2.resize(image, (28, 28))
+    label = ldetect.predict(sized_img, model)
     return label
 
 def main(args):
@@ -77,6 +77,7 @@ def main(args):
         raise Exception("Bad cv2 version check")
 
     rects = []
+    state_images = []
     # Extract each state from the image
     for c in contours:
         # If the contour is the right size
@@ -85,6 +86,11 @@ def main(args):
             rects.append(rect)
             box = np.int0(cv2.boxPoints(rect))
             subimage = gpipe.get_rect(image, rect)
+            state_img = gpipe.get_rect(thresh, rect)
+            crop = 30
+            state_img = state_img[crop:-crop, crop:-crop]
+            state_images.append(state_img)
+            
 
 #            if args.debug:
                 # Show the state
@@ -144,12 +150,15 @@ def main(args):
 
     states = {}
     for i in range(len(centers)):
-        states[centers[i]] = str(i)
+        label = label_from_rect(state_images[i], model)
+        states[centers[i]] = label
         
     graph = Digraph()
     for i in range(len(centroid_state_to_state)):
         edge = centroid_state_to_state[i]
-        label = label_from_rect(thresh, labeldims[i], model)
+        rect = labeldims[i]
+        label_img = thresh[rect[0][0]:rect[0][1], rect[1][0]:rect[1][1]]
+        label = label_from_rect(label_img, model)
         graph.edge(states[edge[0]], states[edge[1]], label=label)
         
     graph.render('./out', cleanup=True)
