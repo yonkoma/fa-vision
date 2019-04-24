@@ -148,10 +148,10 @@ def main(args):
         edge = centroid_state_to_state[i]
         graph.edge(states[edge[0]], states[edge[1]])
         
-    graph.render('./out', cleanup=True)
-#    show("image", image)
-
-#    cv2.waitKey(0)
+    graph.render('./out.dot', view=True)
+    if args.debug:
+        show("image", cbh_image)
+        cv2.waitKey(0)
 
 parser = argparse.ArgumentParser(description='Recognize DFAs.')
 parser.add_argument('image', metavar='IMAGE', type=str, help='the image of the DFA to process.')
