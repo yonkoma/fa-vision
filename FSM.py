@@ -1,8 +1,10 @@
 import cv2
 import numpy as np
+import math
 import general_pipeline as gpipe
 import arrow_detection as adetect
 import argparse
+from graphviz import Digraph
 
 def show(name, img):
     cv2.namedWindow(name, cv2.WINDOW_NORMAL)
@@ -37,6 +39,9 @@ def main(args):
     if args.glare:
         thresh = gpipe.removeGlare(blurred, thresh, 5, 200)
 
+    if args.debug:
+        show("threshold", thresh)
+
     bases = adetect.base_mask(image)
     heads = adetect.head_mask(image)
 
@@ -44,6 +49,10 @@ def main(args):
 
     # Remove bases and heads from image to disconnect arrows from states
     thresh = cv2.bitwise_and(thresh, cv2.bitwise_not(base_or_head_mask))
+
+    if args.debug:
+        show("threshold no arrows", thresh)
+
 
     gpipe.removeSmallComponents(thresh, 10)
 
@@ -61,6 +70,7 @@ def main(args):
         raise Exception("Bad cv2 version check")
 
     rects = []
+    state_images = []
     # Extract each state from the image
     for c in contours:
         # If the contour is the right size
@@ -69,60 +79,79 @@ def main(args):
             rects.append(rect)
             box = np.int0(cv2.boxPoints(rect))
             subimage = gpipe.get_rect(image, rect)
+            state_img = gpipe.get_rect(thresh, rect)
+            crop = 30
+            state_img = state_img[crop:-crop, crop:-crop]
+            state_images.append(state_img)
+            
 
-            if args.debug:
+#            if args.debug:
                 # Show the state
-                show("thing", subimage)
-                cv2.waitKey(0)
+#                show("thing", subimage)
+#                cv2.waitKey(0)
 
             # Draw the contour
             cv2.drawContours(blurred, [box], 0, (255, 0, 0), 10)
 
     centers = [center for center, size, theta in rects]
 
+#    if args.debug:
+#        show("testc", blurred)
+#        show("test", thresh)
+#        show("base mask", bases)
+#        show("head mask", heads)
+#        show("arrow mask", adetect.arrow_mask(image, thresh, centers))
+#        show("label mask", adetect.label_mask(image, thresh, centers))
+
+    labeldims_bases_heads = adetect.label_dim_base_to_head_centroids(image, thresh, centers)
+    labeldims = [labeldim for labeldim, base, head in labeldims_bases_heads]
+
+    # # Draw lines from each arrow base to each arrow head,
+    # # and highlight each arrow base and each arrow head
+    #### THIS TESTS THE BASE TO CENTROID TO HEAD THING ####
+    centroid_base_to_heads = adetect.base_to_arrow_to_head_centroids(image, thresh, centers)
     if args.debug:
-        show("testc", blurred)
-        show("test", thresh)
-        show("base mask", bases)
-        show("head mask", heads)
-        show("arrow mask", adetect.arrow_mask(image, thresh, centers))
-        show("label mask", adetect.label_mask(image, thresh, centers))
+        cbh_image = image.copy()
+        for i, [[x1,y1], [xc, yc], [x2,y2]] in enumerate(centroid_base_to_heads):
+            xc = int(xc)
+            yc = int(yc)
+            cv2.circle(cbh_image, (x1,y1), 10, (0, 255, 0), thickness=5)
+            cv2.circle(cbh_image, (x2,y2), 10, (0, 0, 255), thickness=5)
+            cv2.line(cbh_image, (x1, y1), (xc, yc), (255, 0, 0), thickness=5)
 
-        labeldims_bases_heads = adetect.label_dim_base_to_head_centroids(image, thresh, centers)
-        labeldims = [labeldim for labeldim, base, head in labeldims_bases_heads]
+            cv2.rectangle(cbh_image,
+                (labeldims[i][1][0], labeldims[i][0][0]),
+                (labeldims[i][1][1], labeldims[i][0][1]),
+                (255,0,0), 2)
 
-        # # Draw lines from each arrow base to each arrow head,
-        # # and highlight each arrow base and each arrow head
-        #### THIS TESTS THE BASE TO CENTROID TO HEAD THING ####
-        # centroid_base_to_heads = adetect.base_to_arrow_to_head_centroids(image, thresh, centers)
-        # for i, [[x1,y1], [xc, yc], [x2,y2]] in enumerate(centroid_base_to_heads):
-        #     xc = int(xc)
-        #     yc = int(yc)
-        #     cv2.circle(image, (x1,y1), 10, (0, 255, 0), thickness=5)
-        #     cv2.circle(image, (x2,y2), 10, (0, 0, 255), thickness=5)
-        #     cv2.line(image, (x1, y1), (xc, yc), (255, 0, 0), thickness=5)
-
-        #     cv2.rectangle(image,
-        #         (labeldims[i][1][0], labeldims[i][0][0]),
-        #         (labeldims[i][1][1], labeldims[i][0][1]),
-        #         (255,0,0), 2)
-
-        #     show("image", image)
-        #     cv2.waitKey(0)
-        #     cv2.line(image, (xc, yc), (x2, y2), (255, 0, 0), thickness=5)
-        #     show("image", image)
-        #     cv2.waitKey(0)
-
-        #### THIS TESTS STATE TO STATE connections ####
-        centroid_state_to_state = adetect.state_label_state(image, thresh, centers)
-        for i, [[x1, y1], [x2, y2]] in enumerate(centroid_state_to_state):
-            cv2.line(image, (int(x1), int(y1)), (int(x2), int(y2)), (255, 0, 0), thickness=5)
-            show("image", image)
+            show("image", cbh_image)
+            cv2.waitKey(0)
+            cv2.line(cbh_image, (xc, yc), (x2, y2), (255, 0, 0), thickness=5)
+            show("image", cbh_image)
             cv2.waitKey(0)
 
-    show("image", image)
+    #### THIS TESTS STATE TO STATE connections ####
+    centroid_state_to_state = adetect.state_label_state(image, thresh, centers)
+    if args.debug:
+        css_image = image.copy()
+        for i, [[x1, y1], [x2, y2]] in enumerate(centroid_state_to_state):
+            cv2.line(css_image, (int(x1), int(y1)), (int(x2), int(y2)), (255, 0, 0), thickness=5)
+            show("image", css_image)
+            cv2.waitKey(0)
 
-    cv2.waitKey(0)
+    states = {}
+    for i in range(len(centers)):
+        states[centers[i]] = str(i)
+        
+    graph = Digraph()
+    for i in range(len(centroid_state_to_state)):
+        edge = centroid_state_to_state[i]
+        graph.edge(states[edge[0]], states[edge[1]])
+        
+    graph.render('./out.dot', view=True)
+    if args.debug:
+        show("image", cbh_image)
+        cv2.waitKey(0)
 
 parser = argparse.ArgumentParser(description='Recognize DFAs.')
 parser.add_argument('image', metavar='IMAGE', type=str, help='the image of the DFA to process.')

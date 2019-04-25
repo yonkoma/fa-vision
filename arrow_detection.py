@@ -157,7 +157,7 @@ def base_to_arrow_to_head_centroids(img, bin_img, state_centers):
 
     if len(base_centroids) != len(head_centroids) or len(base_centroids) != len(arrow_centroids):
         raise ValueError(f"bad image for base_to_arrow_to_head_centroids."
-            f"There are {len(base_centroids)} bases, {len(head_centroids)} heads, and {len(label_centroids)} labels, but there should be the same of each.")
+            f"There are {len(base_centroids)} bases, {len(head_centroids)} heads, and {len(arrow_centroids)} arrows, but there should be the same of each.")
 
     # A mask with the bases, the heads, and the arrows
     base_head_arrow_mask = cv2.bitwise_or(bases, cv2.bitwise_or(heads, arrows))
@@ -257,8 +257,8 @@ def state_label_state(img, bin_img, state_centers):
     labeldims = [labeldim for labeldim, base, head in labeldims_bases_heads]
     bases = [base for labeldim, base, head in labeldims_bases_heads]
     heads = [head for labeldim, base, head in labeldims_bases_heads]
-    print(bases)
-    print(heads)
+#    print(bases)
+#    print(heads)
 
     newbases = []
     # Find closest state center.
@@ -270,10 +270,10 @@ def state_label_state(img, bin_img, state_centers):
             if centroid_sqr_dist(base, state_center) < min_sqr_dist:
                 min_j = j
                 min_sqr_dist = centroid_sqr_dist(base, state_center)
-        print("min_j", min_j)
+#        print("min_j", min_j)
         newbase = state_centers[min_j]
         newbases.append(newbase)
-        print("newbase", newbase)
+#        print("newbase", newbase)
 
     newheads = []
     for i, head in enumerate(heads):
@@ -282,13 +282,13 @@ def state_label_state(img, bin_img, state_centers):
             if centroid_sqr_dist(head, state_center) < min_sqr_dist:
                 min_j = j
                 min_sqr_dist = centroid_sqr_dist(head, state_center)
-        print("min_j", min_j)
+#        print("min_j", min_j)
         newhead = state_centers[min_j]
         newheads.append(newhead)
-        print("newhead", newhead)
+#        print("newhead", newhead)
 
     results = list(zip(newbases, newheads))
-    print(results)
+#    print(results)
     return results
 
 """

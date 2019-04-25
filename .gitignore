@@ -3,3 +3,5 @@
 
 # Compilation files
 __pycache__/
+*.pdf
+*.dot
